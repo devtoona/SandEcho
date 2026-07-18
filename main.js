@@ -426,10 +426,64 @@ const beachSandMap = wrapSandTexture(sandMaps.map, 56, THREE.SRGBColorSpace);
 const beachSandRough = wrapSandTexture(sandMaps.roughnessMap, 56);
 const beachSandNormal = wrapSandTexture(sandMaps.normalMap, 56);
 
-// Hourglass needs coarser UV repeat so grain reads up close.
-const hgSandMap = wrapSandTexture(sandMaps.map.clone(), 2.4, THREE.SRGBColorSpace);
-const hgSandRough = wrapSandTexture(sandMaps.roughnessMap.clone(), 2.4);
-const hgSandNormal = wrapSandTexture(sandMaps.normalMap.clone(), 2.4);
+// Hourglass sand is packed grains up close — denser, less "beach ripple" than the shore maps.
+function makeHourglassSandMaps(size = 512) {
+  const albedo = document.createElement('canvas');
+  albedo.width = albedo.height = size;
+  const actx = albedo.getContext('2d');
+  const aImg = actx.createImageData(size, size);
+
+  const rough = document.createElement('canvas');
+  rough.width = rough.height = size;
+  const rctx = rough.getContext('2d');
+  const rImg = rctx.createImageData(size, size);
+
+  const heights = new Float32Array(size * size);
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = x / size;
+      const v = y / size;
+      const mottling = noise.noise(u * 4, v * 4, 31) * 0.45 + noise.noise(u * 9, v * 9, 32) * 0.3;
+      const clump = noise.noise(u * 28, v * 28, 33) * 0.55 + noise.noise(u * 48, v * 48, 34) * 0.35;
+      const grain = noise.noise(u * 120, v * 120, 35) * 0.55 + noise.noise(u * 220, v * 220, 36) * 0.35;
+      const shade = mottling * 22 + clump * 16 + grain * 18;
+
+      const r = clamp(212 + shade * 0.9 + mottling * 5, 130, 255);
+      const g = clamp(168 + shade * 0.7 + mottling * 2, 100, 240);
+      const b = clamp(98 + shade * 0.35 - mottling * 3, 50, 170);
+      const ai = (y * size + x) * 4;
+      aImg.data[ai] = r;
+      aImg.data[ai + 1] = g;
+      aImg.data[ai + 2] = b;
+      aImg.data[ai + 3] = 255;
+
+      const roughV = clamp(0.68 + grain * 0.22 - clump * 0.06, 0.4, 0.98);
+      const rv = Math.floor(roughV * 255);
+      rImg.data[ai] = rv;
+      rImg.data[ai + 1] = rv;
+      rImg.data[ai + 2] = rv;
+      rImg.data[ai + 3] = 255;
+
+      // Packed micro-relief only — no wind ripples inside the glass.
+      heights[y * size + x] =
+        clump * 0.35 + grain * 0.55 + noise.noise(u * 90, v * 90, 37) * 0.2;
+    }
+  }
+
+  actx.putImageData(aImg, 0, 0);
+  rctx.putImageData(rImg, 0, 0);
+  return {
+    map: new THREE.CanvasTexture(albedo),
+    roughnessMap: new THREE.CanvasTexture(rough),
+    normalMap: heightFieldToNormalTexture(heights, size, 3.4),
+  };
+}
+
+const hgMaps = makeHourglassSandMaps(512);
+const hgSandMap = wrapSandTexture(hgMaps.map, 5.5, THREE.SRGBColorSpace);
+const hgSandRough = wrapSandTexture(hgMaps.roughnessMap, 5.5);
+const hgSandNormal = wrapSandTexture(hgMaps.normalMap, 5.5);
 
 // Ground under the hourglass must read as a flat sand pad the prop stands on.
 // A continuing inland rise made the foreground sand climb into the sky and
@@ -672,21 +726,21 @@ hourglassGroup.add(glassMesh);
 
 const SAND_INSET = 0.88;
 const sandMaterial = new THREE.MeshStandardMaterial({
-  color: 0xf2d08a,
+  color: 0xe8c070,
   map: hgSandMap,
   roughnessMap: hgSandRough,
-  roughness: 0.92,
+  roughness: 0.95,
   normalMap: hgSandNormal,
-  normalScale: new THREE.Vector2(0.7, 0.7),
-  metalness: 0.02,
-  envMapIntensity: 0.28,
+  normalScale: new THREE.Vector2(1.15, 1.15),
+  metalness: 0,
+  envMapIntensity: 0.16,
 });
 
 function buildSandLathe(fromY, toY) {
   const pts = fullProfile
     .filter((p) => p.y >= fromY - 1e-6 && p.y <= toY + 1e-6)
     .map((p) => new THREE.Vector2(Math.max(p.r * SAND_INSET, 0.001), p.y));
-  return new THREE.LatheGeometry(pts, 48);
+  return new THREE.LatheGeometry(pts, 64);
 }
 
 const topSandGeometry = buildSandLathe(NECK_Y, TIP_Y);
@@ -707,11 +761,9 @@ bottomSandMesh.receiveShadow = true;
 bottomSandMesh.castShadow = true;
 hourglassGroup.add(topSandMesh, bottomSandMesh);
 
-// A perfectly flat, perfectly circular disc reads as a mathematical surface,
-// not settled granular sand. Build a real radial grid (concentric rings, not
-// CircleGeometry's single-ring fan) so noise + a parabolic mound/dimple bias
-// have enough vertices to actually read as a grainy, gently piled surface.
-function buildSandCapGeometry(moundHeight, noiseSeed, rings = 14, radialSegments = 48) {
+// A perfectly flat disc reads as math, not settled grains. Radial grid +
+// angle-of-repose cone (pile / funnel) + multi-octave surface grit.
+function buildSandCapGeometry(moundHeight, noiseSeed, rings = 22, radialSegments = 64) {
   const positions = [0, 0, 0];
   const uvs = [0.5, 0.5];
   for (let r = 1; r <= rings; r++) {
@@ -745,18 +797,20 @@ function buildSandCapGeometry(moundHeight, noiseSeed, rings = 14, radialSegments
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
 
   const pos = geo.attributes.position;
+  const sign = Math.sign(moundHeight) || 1;
+  const amp = Math.abs(moundHeight);
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), y = pos.getY(i);
     const radius = Math.sqrt(x * x + y * y);
-    // Every displacement term must vanish exactly at the rim (radius===1) —
-    // the noise wasn't falling off before, so the noisy rim no longer sat
-    // flush against the clipped glass-shell edge, leaving gaps that looked
-    // like the sand had gone see-through when viewed from above.
+    // Vanish at the rim so the cap meets the clipped glass shell.
     const edgeFalloff = Math.max(0, 1 - radius * radius);
-    let h = moundHeight * edgeFalloff;
-    h += noise.noise(x * 6, y * 6, noiseSeed) * 0.016 * edgeFalloff;
-    h += noise.noise(x * 15, y * 15, noiseSeed + 5) * 0.006 * edgeFalloff;
-    h += noise.noise(x * 32, y * 32, noiseSeed + 9) * 0.0025 * edgeFalloff;
+    // Soft cone (~angle of repose) instead of a pure parabola.
+    const cone = Math.pow(Math.max(0, 1 - radius), 1.35);
+    let h = sign * amp * (0.55 * cone + 0.45 * edgeFalloff);
+    h += noise.noise(x * 5, y * 5, noiseSeed) * 0.02 * edgeFalloff;
+    h += noise.noise(x * 14, y * 14, noiseSeed + 5) * 0.009 * edgeFalloff;
+    h += noise.noise(x * 32, y * 32, noiseSeed + 9) * 0.004 * edgeFalloff;
+    h += noise.noise(x * 70, y * 70, noiseSeed + 13) * 0.0016 * edgeFalloff;
     pos.setZ(i, h);
   }
   geo.computeVertexNormals();
@@ -765,19 +819,22 @@ function buildSandCapGeometry(moundHeight, noiseSeed, rings = 14, radialSegments
 
 // Sand funnels down into the neck (dimple) at the top, and piles up (mound)
 // where it lands at the bottom.
-const topCapGeometry = buildSandCapGeometry(-0.05, 1);
-const bottomCapGeometry = buildSandCapGeometry(0.07, 7);
+const topCapGeometry = buildSandCapGeometry(-0.075, 1);
+const bottomCapGeometry = buildSandCapGeometry(0.11, 7);
 const topCapMaterial = sandMaterial.clone();
-topCapMaterial.roughness = 0.82;
+topCapMaterial.normalScale = new THREE.Vector2(1.35, 1.35);
+topCapMaterial.roughness = 0.9;
 const bottomCapMaterial = sandMaterial.clone();
-bottomCapMaterial.roughness = 0.78;
-bottomCapMaterial.envMapIntensity = 0.34;
+bottomCapMaterial.normalScale = new THREE.Vector2(1.4, 1.4);
+bottomCapMaterial.roughness = 0.86;
+bottomCapMaterial.envMapIntensity = 0.22;
 const topCap = new THREE.Mesh(topCapGeometry, topCapMaterial);
 const bottomCap = new THREE.Mesh(bottomCapGeometry, bottomCapMaterial);
 topCap.rotation.x = -Math.PI / 2;
 bottomCap.rotation.x = -Math.PI / 2;
 topCap.receiveShadow = true;
 bottomCap.receiveShadow = true;
+bottomCap.castShadow = true;
 hourglassGroup.add(topCap, bottomCap);
 
 /* wood caps + posts */
@@ -843,7 +900,23 @@ scene.add(hourglassGroup);
 
 /* ---------- falling sand stream ---------- */
 
-const STREAM_COUNT = 72;
+function makeGrainSprite(size = 64) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(size * 0.5, size * 0.5, 0, size * 0.5, size * 0.5, size * 0.5);
+  g.addColorStop(0, 'rgba(255,236,190,1)');
+  g.addColorStop(0.35, 'rgba(240,200,130,0.85)');
+  g.addColorStop(0.7, 'rgba(200,150,80,0.25)');
+  g.addColorStop(1, 'rgba(160,110,50,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+const STREAM_COUNT = 140;
 const streamGeometry = new THREE.BufferGeometry();
 const streamPositions = new Float32Array(STREAM_COUNT * 3);
 const streamColors = new Float32Array(STREAM_COUNT * 3);
@@ -852,26 +925,29 @@ const streamSpeeds = new Float32Array(STREAM_COUNT);
 const streamRadii = new Float32Array(STREAM_COUNT);
 for (let i = 0; i < STREAM_COUNT; i++) {
   streamPhases[i] = Math.random();
-  streamSpeeds[i] = 1.25 + Math.random() * 0.9;
-  streamRadii[i] = Math.random() * 0.018;
+  streamSpeeds[i] = 1.35 + Math.random() * 1.1;
+  // Tighter core with a few stray grains.
+  streamRadii[i] = Math.random() < 0.82 ? Math.random() * 0.012 : 0.012 + Math.random() * 0.014;
   const ang = Math.random() * Math.PI * 2;
   streamPositions[i * 3] = Math.cos(ang) * streamRadii[i];
   streamPositions[i * 3 + 1] = 0;
   streamPositions[i * 3 + 2] = Math.sin(ang) * streamRadii[i];
-  const warm = 0.85 + Math.random() * 0.15;
+  const warm = 0.88 + Math.random() * 0.12;
   streamColors[i * 3] = warm;
-  streamColors[i * 3 + 1] = 0.72 + Math.random() * 0.18;
-  streamColors[i * 3 + 2] = 0.42 + Math.random() * 0.2;
+  streamColors[i * 3 + 1] = 0.7 + Math.random() * 0.2;
+  streamColors[i * 3 + 2] = 0.38 + Math.random() * 0.22;
 }
 streamGeometry.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
 streamGeometry.setAttribute('color', new THREE.BufferAttribute(streamColors, 3));
 const streamMaterial = new THREE.PointsMaterial({
-  size: 0.024,
+  map: makeGrainSprite(),
+  size: 0.018,
   transparent: true,
-  opacity: 0.82,
+  opacity: 0.9,
   sizeAttenuation: true,
   vertexColors: true,
   depthWrite: false,
+  blending: THREE.NormalBlending,
 });
 const streamPoints = new THREE.Points(streamGeometry, streamMaterial);
 hourglassGroup.add(streamPoints);
@@ -982,19 +1058,21 @@ function animate() {
 
   updateSandLevels();
 
-  const streamTop = NECK_Y - 0.02;
+  const streamTop = NECK_Y - 0.015;
   const streamBottomLevel = -heightForVolumeFraction(1 - fractionRemaining);
-  const dropRange = 0.5;
-  const streamBottom = Math.max(streamBottomLevel + 0.05, streamTop - dropRange);
+  // Fall all the way onto the pile surface instead of stopping mid-air.
+  const streamBottom = streamBottomLevel + 0.04;
+  const fallDist = Math.max(streamTop - streamBottom, 0.08);
   const positions = streamGeometry.attributes.position;
   if (streamPoints.visible) {
     for (let i = 0; i < STREAM_COUNT; i++) {
       const t = (elapsed * streamSpeeds[i] + streamPhases[i]) % 1;
-      const y = streamTop - t * (streamTop - streamBottom);
-      // Slight lateral wobble as grains fall.
-      const wobble = Math.sin(elapsed * 6.5 + streamPhases[i] * 12.0) * 0.003;
-      const ang = streamPhases[i] * Math.PI * 2;
-      const r = streamRadii[i] * (1 - t * 0.35);
+      // Ease in slightly so grains accelerate as they fall.
+      const ease = t * t;
+      const y = streamTop - ease * fallDist;
+      const wobble = Math.sin(elapsed * 8.0 + streamPhases[i] * 14.0) * 0.0025;
+      const ang = streamPhases[i] * Math.PI * 2 + elapsed * 0.4;
+      const r = streamRadii[i] * (1 - t * 0.25);
       positions.setX(i, Math.cos(ang) * r + wobble);
       positions.setY(i, y);
       positions.setZ(i, Math.sin(ang) * r);
