@@ -22,7 +22,7 @@
 <canvas id="scene"></canvas>
 
 <div class="hud">
-  <button id="settingsBtn" class="settings-btn" aria-label="設定">⚙</button>
+  <button id="settingsBtn" class="settings-btn" aria-label="メモ">✎</button>
 
   <div class="readout">
     <div class="readout-line"><span id="rDays">--</span><small>日</small></div>
@@ -36,18 +36,26 @@
 </div>
 
 <div id="settingsModal" class="modal-overlay hidden">
-  <div class="modal">
-    <h2>設定</h2>
-    <label>
-      生年月日
+  <div class="memo" role="dialog" aria-labelledby="memoTitle">
+    <div class="memo-tape" aria-hidden="true"></div>
+    <p class="memo-aside" aria-hidden="true">sand echo</p>
+    <h2 id="memoTitle">メモ</h2>
+
+    <label class="memo-field">
+      <span class="memo-label">うまれた日</span>
       <input type="date" id="birthDateInput">
     </label>
-    <label>
-      何歳まで生きるか
-      <input type="number" id="lifespanInput" min="1" max="150" value="80">
+
+    <label class="memo-field">
+      <span class="memo-label">なん歳まで</span>
+      <span class="memo-inline">
+        <input type="number" id="lifespanInput" min="1" max="150" value="80" inputmode="numeric">
+        <span class="memo-unit">歳</span>
+      </span>
     </label>
-    <div class="modal-actions">
-      <button id="saveSettings" class="btn-primary">保存</button>
+
+    <div class="memo-actions">
+      <button id="saveSettings" class="memo-save" type="button">私はここにいる</button>
     </div>
   </div>
 </div>

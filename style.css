@@ -95,7 +95,7 @@ html, body {
   opacity: 0.78;
 }
 
-/* ---------- Settings button ---------- */
+/* ---------- Settings / memo button ---------- */
 .settings-btn {
   position: absolute;
   top: 24px;
@@ -103,89 +103,227 @@ html, body {
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.25);
-  background: rgba(20, 20, 25, 0.35);
+  border: 1px solid rgba(255,248,236,0.28);
+  background: rgba(18, 22, 28, 0.4);
   backdrop-filter: blur(10px);
   color: #fff8ec;
-  font-size: 1.3rem;
+  font-size: 1.25rem;
+  line-height: 1;
   cursor: pointer;
   transition: transform 0.25s ease, background 0.25s ease;
 }
 .settings-btn:hover {
-  background: rgba(20, 20, 25, 0.55);
-  transform: rotate(30deg);
+  background: rgba(18, 22, 28, 0.58);
+  transform: rotate(-12deg) scale(1.05);
 }
 
-/* ---------- Modal ---------- */
+/* ---------- Paper memo ---------- */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(5, 8, 12, 0.55);
-  backdrop-filter: blur(6px);
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(12, 18, 26, 0.35), rgba(6, 10, 14, 0.72));
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10;
-  transition: opacity 0.25s ease;
+  padding: 24px;
+  transition: opacity 0.3s ease;
 }
 .modal-overlay.hidden {
   opacity: 0;
   pointer-events: none;
 }
-.modal {
-  background: rgba(28, 24, 22, 0.75);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 18px;
-  padding: 32px;
-  width: min(90vw, 380px);
-  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
-  backdrop-filter: blur(20px);
-  font-family: var(--font-ui);
+.modal-overlay.hidden .memo {
+  transform: translateY(12px) rotate(-1.5deg) scale(0.98);
+  opacity: 0;
 }
-.modal h2 {
-  margin-bottom: 20px;
-  color: #fff8ec;
+
+.memo {
+  position: relative;
+  width: min(92vw, 360px);
+  padding: 42px 36px 34px;
+  color: #2a2622;
   font-family: var(--font-hand);
+  /* Sand-scrap paper — not generic cream stationery */
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.22), transparent 28%),
+    repeating-linear-gradient(
+      transparent,
+      transparent 31px,
+      rgba(70, 90, 110, 0.08) 31px,
+      rgba(70, 90, 110, 0.08) 32px
+    ),
+    linear-gradient(135deg, #dfe8e4 0%, #e7efe8 42%, #d5e0dc 100%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.55) inset,
+    0 18px 40px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.18);
+  transform: rotate(-1.2deg);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+  opacity: 1;
+  /* Soft torn-ish corners via mask-ish radius asymmetry */
+  border-radius: 3px 4px 5px 3px;
+}
+.memo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+  border-radius: inherit;
+}
+.memo::after {
+  /* Left margin rule, like a notepad */
+  content: "";
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 28px;
+  width: 1px;
+  background: rgba(180, 70, 70, 0.28);
+  pointer-events: none;
+}
+
+.memo-tape {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 78px;
+  height: 22px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: linear-gradient(
+    180deg,
+    rgba(220, 236, 245, 0.55),
+    rgba(190, 214, 228, 0.4)
+  );
+  border: 1px solid rgba(255,255,255,0.35);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+  opacity: 0.9;
+}
+
+.memo-aside {
+  position: absolute;
+  top: 48px;
+  right: 14px;
+  writing-mode: vertical-rl;
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  color: rgba(60, 80, 95, 0.35);
+  user-select: none;
+}
+
+.memo h2 {
+  position: relative;
+  margin: 0 0 28px 16px;
+  font-size: 1.85rem;
   font-weight: 400;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.2em;
+  color: #243038;
 }
-.modal label {
+
+.memo-field {
+  position: relative;
   display: block;
-  margin-bottom: 16px;
-  color: #e6d9c8;
-  font-size: 0.95rem;
+  margin: 0 0 26px 16px;
 }
-.modal input {
+
+.memo-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.92rem;
+  letter-spacing: 0.12em;
+  color: rgba(40, 50, 58, 0.72);
+}
+
+.memo-field input {
   display: block;
   width: 100%;
-  margin-top: 6px;
-  padding: 10px 12px;
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 8px;
-  font-size: 1rem;
-  font-family: system-ui, -apple-system, sans-serif;
-  background: rgba(255,255,255,0.06);
-  color: #fff8ec;
-  color-scheme: dark;
+  padding: 4px 2px 8px;
+  border: none;
+  border-bottom: 1.5px solid rgba(50, 70, 85, 0.35);
+  border-radius: 0;
+  background: transparent;
+  color: #1e2a32;
+  font-family: var(--font-hand);
+  font-size: 1.25rem;
+  letter-spacing: 0.04em;
+  outline: none;
+  color-scheme: light;
+  transition: border-color 0.2s ease;
 }
-.modal-actions {
-  margin-top: 24px;
+.memo-field input:focus {
+  border-bottom-color: rgba(40, 90, 120, 0.65);
+}
+.memo-field input[type="number"] {
+  width: 5.5em;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.memo-field input[type="number"]::-webkit-outer-spin-button,
+.memo-field input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.memo-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35em;
+}
+.memo-unit {
+  font-size: 1.05rem;
+  color: rgba(40, 50, 58, 0.65);
+}
+
+.memo-actions {
+  position: relative;
+  margin: 8px 16px 0 0;
   text-align: right;
 }
-.btn-primary {
-  background: linear-gradient(135deg, #f0c35f, #c4842f);
-  color: #201406;
+
+.memo-save {
   border: none;
-  padding: 10px 24px;
-  border-radius: 8px;
-  font-size: 1.05rem;
+  background: transparent;
+  color: #243038;
   font-family: var(--font-hand);
-  font-weight: 400;
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  transition: filter 0.2s ease;
+  padding: 6px 4px;
+  position: relative;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
-.btn-primary:hover {
-  filter: brightness(1.1);
+.memo-save::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 2px;
+  background: rgba(40, 90, 120, 0.45);
+  transform: scaleX(0.55);
+  transform-origin: right center;
+  transition: transform 0.25s ease;
+}
+.memo-save:hover {
+  color: #0f3a52;
+  transform: rotate(-2deg);
+}
+.memo-save:hover::after {
+  transform: scaleX(1);
+}
+
+@media (max-width: 560px) {
+  .readout { top: 5%; }
+  .memo {
+    padding: 36px 28px 28px;
+    transform: rotate(-0.6deg);
+  }
+  .memo-aside { display: none; }
 }
 
 /* ---------- Loading ---------- */
@@ -213,8 +351,4 @@ html, body {
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-@media (max-width: 560px) {
-  .readout { top: 5%; }
 }
