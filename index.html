@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SandEcho — 残された時間</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yomogi&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<div class="hud">
+  <button id="settingsBtn" class="settings-btn" aria-label="設定">⚙</button>
+
+  <div class="readout">
+    <div class="readout-line"><span id="rDays">--</span><small>日</small></div>
+    <div class="readout-sub">
+      <span id="rHours">--</span><small>時間</small>
+      <span id="rMinutes">--</span><small>分</small>
+      <span id="rSeconds">--</span><small>秒</small>
+    </div>
+    <div class="readout-caption" id="rCaption">残された時間</div>
+  </div>
+</div>
+
+<div id="settingsModal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2>設定</h2>
+    <label>
+      生年月日
+      <input type="date" id="birthDateInput">
+    </label>
+    <label>
+      何歳まで生きるか
+      <input type="number" id="lifespanInput" min="1" max="150" value="80">
+    </label>
+    <div class="modal-actions">
+      <button id="saveSettings" class="btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="loadingScreen" class="loading-screen">
+  <div class="loading-spinner"></div>
+</div>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>

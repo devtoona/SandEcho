@@ -1,0 +1,220 @@
+/* Handwritten Japanese faces in fonts/. Swap --font-hand to compare. */
+@font-face {
+  font-family: "Yorusugara";
+  src: url("./fonts/yosugaraver1_2.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Four Seasons";
+  src: url("./fonts/four_seasons.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Previewing Four Seasons; switch to "Yorusugara" to compare 夜すがら. */
+  --font-hand: "Four Seasons", "Yorusugara", "Yomogi", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+  --font-ui: "Four Seasons", "Yomogi", "Hiragino Maru Gothic ProN", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-hand);
+  background: #0a1520;
+}
+
+#scene {
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  outline: none;
+}
+
+/* ---------- HUD ---------- */
+.hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+.hud > * {
+  pointer-events: auto;
+}
+
+.readout {
+  position: absolute;
+  top: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: #fff8ec;
+  text-shadow: 0 2px 18px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3);
+}
+.readout-line {
+  font-size: clamp(2.7rem, 6.5vw, 4.8rem);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: 0.04em;
+}
+.readout-line small {
+  font-size: 0.38em;
+  font-weight: 400;
+  margin-left: 0.25em;
+}
+.readout-sub {
+  margin-top: 0.45em;
+  font-size: clamp(1.05rem, 2.3vw, 1.5rem);
+  opacity: 0.92;
+  letter-spacing: 0.02em;
+}
+.readout-sub span {
+  margin-left: 0.55em;
+}
+.readout-sub small {
+  font-size: 0.75em;
+  margin-left: 0.12em;
+}
+.readout-caption {
+  margin-top: 0.75em;
+  font-size: 1rem;
+  letter-spacing: 0.28em;
+  opacity: 0.78;
+}
+
+/* ---------- Settings button ---------- */
+.settings-btn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(20, 20, 25, 0.35);
+  backdrop-filter: blur(10px);
+  color: #fff8ec;
+  font-size: 1.3rem;
+  cursor: pointer;
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+.settings-btn:hover {
+  background: rgba(20, 20, 25, 0.55);
+  transform: rotate(30deg);
+}
+
+/* ---------- Modal ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 12, 0.55);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: opacity 0.25s ease;
+}
+.modal-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.modal {
+  background: rgba(28, 24, 22, 0.75);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  padding: 32px;
+  width: min(90vw, 380px);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  backdrop-filter: blur(20px);
+  font-family: var(--font-ui);
+}
+.modal h2 {
+  margin-bottom: 20px;
+  color: #fff8ec;
+  font-family: var(--font-hand);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+.modal label {
+  display: block;
+  margin-bottom: 16px;
+  color: #e6d9c8;
+  font-size: 0.95rem;
+}
+.modal input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: rgba(255,255,255,0.06);
+  color: #fff8ec;
+  color-scheme: dark;
+}
+.modal-actions {
+  margin-top: 24px;
+  text-align: right;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #f0c35f, #c4842f);
+  color: #201406;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 1.05rem;
+  font-family: var(--font-hand);
+  font-weight: 400;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+.btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+/* ---------- Loading ---------- */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  background: #0a1520;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  transition: opacity 0.6s ease;
+}
+.loading-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.loading-spinner {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid rgba(240, 195, 95, 0.25);
+  border-top-color: #f0c35f;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 560px) {
+  .readout { top: 5%; }
+}
