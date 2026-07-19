@@ -215,44 +215,283 @@ scene.add(sunLight.target);
 const hemiLight = new THREE.HemisphereLight(0xbfe6f2, 0xdcc79a, 0.4);
 scene.add(hemiLight);
 
-updateSun();
+// Soft fill so hourglass sand stays readable when the key light is low/side-lit.
+const fillLight = new THREE.AmbientLight(0xfff0e0, 0.25);
+scene.add(fillLight);
 
-/* ---------- Environment map (from sky) for reflections ---------- */
+/* ---------- Time of day (local clock → sky / light / water) ---------- */
+
+function hexToRgb(hex) {
+  const n = typeof hex === 'number' ? hex : parseInt(String(hex).replace('#', ''), 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+function rgbToHex(r, g, b) {
+  return (clamp(Math.round(r), 0, 255) << 16)
+    | (clamp(Math.round(g), 0, 255) << 8)
+    | clamp(Math.round(b), 0, 255);
+}
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+function lerpHex(a, b, t) {
+  const A = hexToRgb(a), B = hexToRgb(b);
+  return rgbToHex(lerp(A.r, B.r, t), lerp(A.g, B.g, t), lerp(A.b, B.b, t));
+}
+function lerpStops(a, b, t) {
+  return a.map((stop, i) => ({
+    t: stop.t,
+    c: '#' + lerpHex(parseInt(stop.c.slice(1), 16), parseInt(b[i].c.slice(1), 16), t)
+      .toString(16).padStart(6, '0'),
+  }));
+}
+
+// Keyframes by local hour. Elevation drives Sky/sun; gradient is what the camera sees.
+const DAY_KEYS = [
+  {
+    h: 0,
+    elevation: -14, azimuth: 210,
+    turbidity: 1.2, rayleigh: 0.6,
+    sunColor: 0xb0c4e8, sunIntensity: 0.12,
+    hemiSky: 0x1a2740, hemiGround: 0x1c1814, hemiIntensity: 0.22,
+    fog: 0x0b1220, exposure: 0.48,
+    water: 0x0a1824, waterSun: 0x8899bb,
+    stops: [
+      { t: 0, c: '#050814' }, { t: 0.25, c: '#0a1430' }, { t: 0.45, c: '#152048' },
+      { t: 0.55, c: '#1c2a4a' }, { t: 0.7, c: '#24304a' }, { t: 1, c: '#1a2030' },
+    ],
+  },
+  {
+    h: 5.2,
+    elevation: -3, azimuth: 85,
+    turbidity: 2.5, rayleigh: 1.4,
+    sunColor: 0xffc4a0, sunIntensity: 0.35,
+    hemiSky: 0x6a7aaa, hemiGround: 0x4a3a35, hemiIntensity: 0.28,
+    fog: 0x2a3048, exposure: 0.55,
+    water: 0x142838, waterSun: 0xffb090,
+    stops: [
+      { t: 0, c: '#1a2040' }, { t: 0.3, c: '#4a3a60' }, { t: 0.48, c: '#c07060' },
+      { t: 0.58, c: '#e8a070' }, { t: 0.72, c: '#f0c8a0' }, { t: 1, c: '#d8c8b8' },
+    ],
+  },
+  {
+    h: 6.8,
+    elevation: 10, azimuth: 95,
+    turbidity: 1.4, rayleigh: 2.8,
+    sunColor: 0xffe0c0, sunIntensity: 1.1,
+    hemiSky: 0x9ec8e8, hemiGround: 0xd0b090, hemiIntensity: 0.38,
+    fog: 0xd8e8f0, exposure: 0.75,
+    water: 0x1a6a7a, waterSun: 0xffe8d0,
+    stops: [
+      { t: 0, c: '#3a7ab8' }, { t: 0.28, c: '#6aa8d8' }, { t: 0.48, c: '#a8d0e8' },
+      { t: 0.58, c: '#d0e4f0' }, { t: 0.72, c: '#e8f0f4' }, { t: 1, c: '#f0f4f2' },
+    ],
+  },
+  {
+    h: 10,
+    elevation: 42, azimuth: 130,
+    turbidity: 0.8, rayleigh: 5,
+    sunColor: 0xfffaf0, sunIntensity: 1.7,
+    hemiSky: 0xbfe6f2, hemiGround: 0xdcc79a, hemiIntensity: 0.4,
+    fog: 0xe3f4f0, exposure: 0.85,
+    water: 0x1f7a8c, waterSun: 0xffffff,
+    stops: [
+      { t: 0, c: '#1560a3' }, { t: 0.25, c: '#2d86c9' }, { t: 0.45, c: '#57addd' },
+      { t: 0.55, c: '#8ccce8' }, { t: 0.7, c: '#dff4f0' }, { t: 1, c: '#eaf6f2' },
+    ],
+  },
+  {
+    h: 14,
+    elevation: 48, azimuth: 200,
+    turbidity: 0.9, rayleigh: 4.5,
+    sunColor: 0xfff5e6, sunIntensity: 1.55,
+    hemiSky: 0xa8d8e8, hemiGround: 0xd4b888, hemiIntensity: 0.38,
+    fog: 0xe0f0ec, exposure: 0.82,
+    water: 0x1c7385, waterSun: 0xfff8f0,
+    stops: [
+      { t: 0, c: '#1870b0' }, { t: 0.25, c: '#3a92d0' }, { t: 0.45, c: '#62b4e0' },
+      { t: 0.55, c: '#8cc8e8' }, { t: 0.7, c: '#d8f0ec' }, { t: 1, c: '#e8f4f0' },
+    ],
+  },
+  {
+    h: 17.2,
+    elevation: 14, azimuth: 250,
+    turbidity: 3.2, rayleigh: 2.2,
+    sunColor: 0xffb070, sunIntensity: 1.35,
+    hemiSky: 0xe8a888, hemiGround: 0xc09060, hemiIntensity: 0.42,
+    fog: 0xe8c8a8, exposure: 0.78,
+    water: 0x2a5568, waterSun: 0xffc090,
+    stops: [
+      { t: 0, c: '#2a4a78' }, { t: 0.28, c: '#c06040' }, { t: 0.45, c: '#e87830' },
+      { t: 0.55, c: '#f0a050' }, { t: 0.68, c: '#f8c878' }, { t: 1, c: '#f0d8b0' },
+    ],
+  },
+  {
+    h: 18.6,
+    elevation: 1.5, azimuth: 265,
+    turbidity: 4.5, rayleigh: 1.6,
+    sunColor: 0xff8050, sunIntensity: 0.85,
+    hemiSky: 0xd07060, hemiGround: 0x6a4038, hemiIntensity: 0.32,
+    fog: 0xc08070, exposure: 0.62,
+    water: 0x1a3048, waterSun: 0xff9060,
+    stops: [
+      { t: 0, c: '#1a2048' }, { t: 0.3, c: '#803050' }, { t: 0.48, c: '#e05030' },
+      { t: 0.58, c: '#f08040' }, { t: 0.72, c: '#d09070' }, { t: 1, c: '#a08078' },
+    ],
+  },
+  {
+    h: 20,
+    elevation: -6, azimuth: 280,
+    turbidity: 1.8, rayleigh: 0.9,
+    sunColor: 0x8899cc, sunIntensity: 0.2,
+    hemiSky: 0x2a3558, hemiGround: 0x2a2018, hemiIntensity: 0.24,
+    fog: 0x141c30, exposure: 0.5,
+    water: 0x0c1828, waterSun: 0x7788aa,
+    stops: [
+      { t: 0, c: '#080c20' }, { t: 0.3, c: '#1a2040' }, { t: 0.5, c: '#302848' },
+      { t: 0.62, c: '#403858' }, { t: 0.78, c: '#2a3048' }, { t: 1, c: '#1c2235' },
+    ],
+  },
+  {
+    h: 24,
+    elevation: -14, azimuth: 210,
+    turbidity: 1.2, rayleigh: 0.6,
+    sunColor: 0xb0c4e8, sunIntensity: 0.12,
+    hemiSky: 0x1a2740, hemiGround: 0x1c1814, hemiIntensity: 0.22,
+    fog: 0x0b1220, exposure: 0.48,
+    water: 0x0a1824, waterSun: 0x8899bb,
+    stops: [
+      { t: 0, c: '#050814' }, { t: 0.25, c: '#0a1430' }, { t: 0.45, c: '#152048' },
+      { t: 0.55, c: '#1c2a4a' }, { t: 0.7, c: '#24304a' }, { t: 1, c: '#1a2030' },
+    ],
+  },
+];
+
+function localHour() {
+  // Preview: ?hour=18.5 forces a time (0–24).
+  const params = new URLSearchParams(location.search);
+  if (params.has('hour')) {
+    const forced = Number(params.get('hour'));
+    if (Number.isFinite(forced)) return ((forced % 24) + 24) % 24;
+  }
+  const n = new Date();
+  return n.getHours() + n.getMinutes() / 60 + n.getSeconds() / 3600;
+}
+
+function sampleDayMood(hour) {
+  let i = 0;
+  while (i < DAY_KEYS.length - 1 && DAY_KEYS[i + 1].h <= hour) i++;
+  const a = DAY_KEYS[i];
+  const b = DAY_KEYS[i + 1];
+  const t = (hour - a.h) / (b.h - a.h || 1);
+  const s = t * t * (3 - 2 * t);
+  return {
+    elevation: lerp(a.elevation, b.elevation, s),
+    azimuth: lerp(a.azimuth, b.azimuth, s),
+    turbidity: lerp(a.turbidity, b.turbidity, s),
+    rayleigh: lerp(a.rayleigh, b.rayleigh, s),
+    sunColor: lerpHex(a.sunColor, b.sunColor, s),
+    sunIntensity: lerp(a.sunIntensity, b.sunIntensity, s),
+    hemiSky: lerpHex(a.hemiSky, b.hemiSky, s),
+    hemiGround: lerpHex(a.hemiGround, b.hemiGround, s),
+    hemiIntensity: lerp(a.hemiIntensity, b.hemiIntensity, s),
+    fog: lerpHex(a.fog, b.fog, s),
+    exposure: lerp(a.exposure, b.exposure, s),
+    water: lerpHex(a.water, b.water, s),
+    waterSun: lerpHex(a.waterSun, b.waterSun, s),
+    stops: lerpStops(a.stops, b.stops, s),
+  };
+}
+
+function paintSkyGradient(ctx, w, h, stops) {
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  for (const s of stops) grad.addColorStop(s.t, s.c);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function makeSkyGradientTexture(stops, w = 512, h = 256) {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  paintSkyGradient(c.getContext('2d'), w, h, stops);
+  const tex = new THREE.CanvasTexture(c);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.userData.canvas = c;
+  return tex;
+}
+
+function updateSkyGradientTexture(tex, stops) {
+  const c = tex.userData.canvas;
+  paintSkyGradient(c.getContext('2d'), c.width, c.height, stops);
+  tex.needsUpdate = true;
+}
+
+let envRT = null;
+let lastEnvElevation = null;
+
+function refreshEnvironmentMap() {
+  if (envRT) envRT.dispose();
+  envRT = pmremGenerator.fromScene(envScene, 0.04);
+  scene.environment = envRT.texture;
+}
+
+function applyDayMood(mood) {
+  skyParams.elevation = mood.elevation;
+  skyParams.azimuth = mood.azimuth;
+  skyUniforms['turbidity'].value = mood.turbidity;
+  skyUniforms['rayleigh'].value = mood.rayleigh;
+  updateSun();
+
+  sunLight.color.setHex(mood.sunColor);
+  sunLight.intensity = mood.sunIntensity;
+  hemiLight.color.setHex(mood.hemiSky);
+  hemiLight.groundColor.setHex(mood.hemiGround);
+  hemiLight.intensity = mood.hemiIntensity;
+  // Keep a little fill even at night; more in daylight.
+  fillLight.intensity = 0.12 + mood.sunIntensity * 0.12;
+  fillLight.color.setHex(mood.sunColor);
+
+  scene.fog.color.setHex(mood.fog);
+  renderer.toneMappingExposure = mood.exposure;
+
+  water.material.uniforms['waterColor'].value.setHex(mood.water);
+  water.material.uniforms['sunColor'].value.setHex(mood.waterSun);
+
+  updateSkyGradientTexture(skyGradTex, mood.stops);
+  scene.background = skyGradTex;
+
+  if (lastEnvElevation === null || Math.abs(mood.elevation - lastEnvElevation) > 1.5) {
+    lastEnvElevation = mood.elevation;
+    refreshEnvironmentMap();
+  }
+
+  // Dev check: open console → __sandechoTod
+  window.__sandechoTod = {
+    hour: localHour(),
+    elevation: mood.elevation,
+    sunIntensity: mood.sunIntensity,
+    exposure: mood.exposure,
+  };
+}
 
 const pmremGenerator = new THREE.PMREMGenerator(renderer);
 const envScene = new THREE.Scene();
 envScene.add(sky);
-const envRT = pmremGenerator.fromScene(envScene, 0.04);
-scene.environment = envRT.texture;
-// Sky.js's physically-based horizon band is inevitably pale/hazy from this
-// camera's near-level framing (it never tilts up toward the saturated
-// zenith), which read as "overcast". Sky stays in envScene only, driving
-// reflections/IBL — the visible backdrop is a hand-authored gradient so the
-// sky reads as clear and sunny regardless of viewing angle.
-function makeSkyGradientTexture(w = 512, h = 256) {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  const ctx = c.getContext('2d');
-  // This camera only ever tilts between level and looking slightly down, so
-  // the visible sky band sits around v≈0.33–0.50 (never reaches the paler
-  // zenith/near-horizon-haze tones) — keep that whole band a saturated blue.
-  const grad = ctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, '#1560a3');
-  grad.addColorStop(0.25, '#2d86c9');
-  grad.addColorStop(0.45, '#57addd');
-  grad.addColorStop(0.5, '#79c2e6');
-  grad.addColorStop(0.58, '#a8dcee');
-  grad.addColorStop(0.7, '#dff4f0');
-  grad.addColorStop(1, '#eaf6f2');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, w, h);
-  const tex = new THREE.CanvasTexture(c);
-  tex.mapping = THREE.EquirectangularReflectionMapping;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+
+const skyGradTex = makeSkyGradientTexture(DAY_KEYS[3].stops);
+scene.background = skyGradTex;
+
+applyDayMood(sampleDayMood(localHour()));
+
+let lastTodSample = -1;
+function updateTimeOfDay(force = false) {
+  const hour = localHour();
+  // Refresh ~every 20s of clock time (smooth enough for sunset).
+  if (!force && lastTodSample >= 0 && Math.abs(hour - lastTodSample) < 20 / 3600) return;
+  lastTodSample = hour;
+  applyDayMood(sampleDayMood(hour));
 }
-scene.background = makeSkyGradientTexture();
 
 /* ---------------------------------------------------------------- */
 /*  Beach                                                             */
@@ -733,7 +972,7 @@ const sandMaterial = new THREE.MeshStandardMaterial({
   normalMap: hgSandNormal,
   normalScale: new THREE.Vector2(1.15, 1.15),
   metalness: 0,
-  envMapIntensity: 0.16,
+  envMapIntensity: 0.35,
 });
 
 function buildSandLathe(fromY, toY) {
@@ -1037,6 +1276,7 @@ function animate() {
   const elapsed = clock.getElapsedTime();
 
   water.material.uniforms['time'].value += delta * 0.5;
+  updateTimeOfDay();
 
   // Swash from the waterline inland toward the hourglass. Wet apron keeps its
   // seaward edge pinned to WATERLINE_Z so damp sand is never a detached stripe.
