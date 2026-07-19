@@ -873,6 +873,125 @@ beach.position.set(0, 0, beachCenterZ);
 beach.receiveShadow = true;
 scene.add(beach);
 
+/* ---------- Sand Echo: finger-traced writing in the sand ---------- */
+
+const SAND_WRITE = {
+  text: 'Sand Echo',
+  width: 1024,
+  height: 320,
+  planeW: 7.2,
+  planeH: 2.25,
+  // On the dry pad, toward the camera from the hourglass.
+  position: new THREE.Vector3(1.9, SAND_PAD_Y + 0.009, 5.1),
+  yaw: 0.14,
+  fadeSec: 5.5,
+  reveal: 0,
+  ready: false,
+  canvas: null,
+  ctx: null,
+  texture: null,
+  mesh: null,
+};
+
+function paintSandWriting(reveal) {
+  const { ctx, width: w, height: h, text } = SAND_WRITE;
+  if (!ctx) return;
+  ctx.clearRect(0, 0, w, h);
+
+  ctx.save();
+  const soft = 0.07;
+  const edge = Math.min(1, Math.max(0, reveal));
+  const revealX = w * (soft + edge * (1 - soft));
+  ctx.beginPath();
+  ctx.rect(0, 0, revealX, h);
+  ctx.clip();
+
+  ctx.font = '152px "Four Seasons", "Yorusugara", "Yomogi", cursive';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  const x = w * 0.5;
+  const y = h * 0.52;
+
+  // Pushed-aside sand ridge (lighter lip around the groove).
+  ctx.strokeStyle = 'rgba(255, 240, 214, 0.5)';
+  ctx.lineWidth = 16;
+  ctx.strokeText(text, x, y - 1.5);
+
+  // Finger groove: slightly darker / damp sand.
+  ctx.fillStyle = 'rgba(68, 48, 32, 0.4)';
+  ctx.fillText(text, x, y + 1.5);
+  ctx.strokeStyle = 'rgba(48, 34, 24, 0.48)';
+  ctx.lineWidth = 3.2;
+  ctx.strokeText(text, x, y + 1.5);
+
+  // Soften the groove with a faint second pass for hand-drawn thickness.
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = 'rgba(90, 64, 42, 0.55)';
+  ctx.fillText(text, x + 1.2, y + 2.2);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // Feather the decal into the beach so it doesn't read as a floating card.
+  ctx.globalCompositeOperation = 'destination-in';
+  const fade = ctx.createRadialGradient(w * 0.5, h * 0.5, h * 0.18, w * 0.5, h * 0.5, w * 0.52);
+  fade.addColorStop(0, 'rgba(0,0,0,1)');
+  fade.addColorStop(0.55, 'rgba(0,0,0,0.85)');
+  fade.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = fade;
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = 'source-over';
+
+  SAND_WRITE.texture.needsUpdate = true;
+}
+
+function createSandWriting() {
+  const canvas = document.createElement('canvas');
+  canvas.width = SAND_WRITE.width;
+  canvas.height = SAND_WRITE.height;
+  const ctx = canvas.getContext('2d');
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+
+  const material = new THREE.MeshStandardMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+    roughness: 0.98,
+    metalness: 0,
+    envMapIntensity: 0.08,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+  });
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(SAND_WRITE.planeW, SAND_WRITE.planeH),
+    material,
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.rotation.z = SAND_WRITE.yaw;
+  mesh.position.copy(SAND_WRITE.position);
+  mesh.receiveShadow = true;
+  mesh.renderOrder = 1;
+  scene.add(mesh);
+
+  SAND_WRITE.canvas = canvas;
+  SAND_WRITE.ctx = ctx;
+  SAND_WRITE.texture = texture;
+  SAND_WRITE.mesh = mesh;
+
+  const start = () => {
+    SAND_WRITE.ready = true;
+    paintSandWriting(0);
+  };
+  document.fonts.load('152px "Four Seasons"').then(start).catch(start);
+}
+
+createSandWriting();
+
 /* ---------- swash zone: wet apron + foam running from sea toward hourglass ---------- */
 
 // One continuous damp apron whose seaward edge stays glued to the waterline.
@@ -1365,6 +1484,11 @@ function animate() {
 
   water.material.uniforms['time'].value += delta * 0.5;
   updateTimeOfDay();
+
+  if (SAND_WRITE.ready && SAND_WRITE.reveal < 1) {
+    SAND_WRITE.reveal = Math.min(1, SAND_WRITE.reveal + delta / SAND_WRITE.fadeSec);
+    paintSandWriting(SAND_WRITE.reveal);
+  }
 
   // Swash from the waterline inland toward the hourglass. Wet apron keeps its
   // seaward edge pinned to WATERLINE_Z so damp sand is never a detached stripe.
