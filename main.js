@@ -134,20 +134,47 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0xe3f4f0, 0.00012);
 
 const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 5000);
-camera.position.set(0, 2.6, 7.8);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 1.8, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.enablePan = false;
-controls.minDistance = 5.5;
-controls.maxDistance = 14;
-controls.minPolarAngle = Math.PI * 0.28;
-controls.maxPolarAngle = Math.PI * 0.5;
-controls.autoRotate = true;
+controls.enableZoom = false;
+controls.enableRotate = false;
+// Default: fixed view from the beach toward the sea.
+// Shift viewing direction with CAMERA_AZIMUTH (+ = from the right / subject faces a bit left).
+const CAMERA_DISTANCE = 14;
+const CAMERA_POLAR = Math.PI * 0.46;
+const CAMERA_AZIMUTH = 0.4;
+const LOOK_TARGET_DEFAULT = new THREE.Vector3(0, 1.8, 0);
+const LOOK_TARGET_ROTATE = new THREE.Vector3(0, 1.8, 0);
+controls.target.copy(LOOK_TARGET_DEFAULT);
+controls.minDistance = CAMERA_DISTANCE;
+controls.maxDistance = CAMERA_DISTANCE;
+controls.minPolarAngle = CAMERA_POLAR;
+controls.maxPolarAngle = CAMERA_POLAR;
+controls.autoRotate = false;
 controls.autoRotateSpeed = 0.35;
-controls.update();
+
+function resetCameraToDefault() {
+  controls.target.copy(LOOK_TARGET_DEFAULT);
+  camera.position.setFromSphericalCoords(CAMERA_DISTANCE, CAMERA_POLAR, CAMERA_AZIMUTH);
+  camera.position.add(controls.target);
+  controls.update();
+}
+resetCameraToDefault();
+
+const rotateToggle = document.getElementById('rotateToggle');
+rotateToggle.addEventListener('change', () => {
+  const on = rotateToggle.checked;
+  controls.autoRotate = on;
+  if (on) {
+    controls.target.copy(LOOK_TARGET_ROTATE);
+    controls.update();
+  } else {
+    resetCameraToDefault();
+  }
+});
 
 /* ---------- Sky + sun ---------- */
 
