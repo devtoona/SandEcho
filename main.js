@@ -155,7 +155,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.localClippingEnabled = true;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0xe3f4f0, 0.00012);
+scene.fog = new THREE.Fog(0xe3f4f0, 110, 320);
 
 const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 5000);
 
@@ -365,7 +365,7 @@ const DAY_KEYS = [
     turbidity: 1.2, rayleigh: 0.6,
     sunColor: 0xb0c4e8, sunIntensity: 0.12,
     hemiSky: 0x1a2740, hemiGround: 0x1c1814, hemiIntensity: 0.22,
-    fog: 0x0b1220, exposure: 0.48,
+    fog: 0x0b1220, fogNear: 110, fogFar: 320, exposure: 0.48,
     water: 0x0a1824, waterSun: 0x8899bb,
     stops: [
       { t: 0, c: '#050814' }, { t: 0.25, c: '#0a1430' }, { t: 0.45, c: '#152048' },
@@ -378,7 +378,7 @@ const DAY_KEYS = [
     turbidity: 2.5, rayleigh: 1.4,
     sunColor: 0xffc4a0, sunIntensity: 0.35,
     hemiSky: 0x6a7aaa, hemiGround: 0x4a3a35, hemiIntensity: 0.28,
-    fog: 0x2a3048, exposure: 0.55,
+    fog: 0x2a3048, fogNear: 90, fogFar: 280, exposure: 0.55,
     water: 0x142838, waterSun: 0xffb090,
     stops: [
       { t: 0, c: '#1a2040' }, { t: 0.3, c: '#4a3a60' }, { t: 0.48, c: '#c07060' },
@@ -391,7 +391,7 @@ const DAY_KEYS = [
     turbidity: 1.4, rayleigh: 2.8,
     sunColor: 0xffe0c0, sunIntensity: 1.1,
     hemiSky: 0x9ec8e8, hemiGround: 0xd0b090, hemiIntensity: 0.38,
-    fog: 0xd8e8f0, exposure: 0.75,
+    fog: 0xd8e8f0, fogNear: 95, fogFar: 295, exposure: 0.75,
     water: 0x1a6a7a, waterSun: 0xffe8d0,
     stops: [
       { t: 0, c: '#3a7ab8' }, { t: 0.28, c: '#6aa8d8' }, { t: 0.48, c: '#a8d0e8' },
@@ -404,7 +404,7 @@ const DAY_KEYS = [
     turbidity: 0.8, rayleigh: 5,
     sunColor: 0xfffaf0, sunIntensity: 1.7,
     hemiSky: 0xbfe6f2, hemiGround: 0xdcc79a, hemiIntensity: 0.4,
-    fog: 0xe3f4f0, exposure: 0.85,
+    fog: 0xe3f4f0, fogNear: 110, fogFar: 320, exposure: 0.85,
     water: 0x1f7a8c, waterSun: 0xffffff,
     stops: [
       { t: 0, c: '#1560a3' }, { t: 0.25, c: '#2d86c9' }, { t: 0.45, c: '#57addd' },
@@ -417,7 +417,7 @@ const DAY_KEYS = [
     turbidity: 0.9, rayleigh: 4.5,
     sunColor: 0xfff5e6, sunIntensity: 1.55,
     hemiSky: 0xa8d8e8, hemiGround: 0xd4b888, hemiIntensity: 0.38,
-    fog: 0xe0f0ec, exposure: 0.82,
+    fog: 0xe0f0ec, fogNear: 110, fogFar: 320, exposure: 0.82,
     water: 0x1c7385, waterSun: 0xfff8f0,
     stops: [
       { t: 0, c: '#1870b0' }, { t: 0.25, c: '#3a92d0' }, { t: 0.45, c: '#62b4e0' },
@@ -430,7 +430,7 @@ const DAY_KEYS = [
     turbidity: 3.2, rayleigh: 2.2,
     sunColor: 0xffb070, sunIntensity: 1.35,
     hemiSky: 0xe8a888, hemiGround: 0xc09060, hemiIntensity: 0.42,
-    fog: 0xe8c8a8, exposure: 0.78,
+    fog: 0xe8c8a8, fogNear: 90, fogFar: 285, exposure: 0.78,
     water: 0x2a5568, waterSun: 0xffc090,
     stops: [
       { t: 0, c: '#2a4a78' }, { t: 0.28, c: '#c06040' }, { t: 0.45, c: '#e87830' },
@@ -443,7 +443,7 @@ const DAY_KEYS = [
     turbidity: 4.5, rayleigh: 1.6,
     sunColor: 0xff8050, sunIntensity: 0.85,
     hemiSky: 0xd07060, hemiGround: 0x6a4038, hemiIntensity: 0.32,
-    fog: 0xc08070, exposure: 0.62,
+    fog: 0xc08070, fogNear: 85, fogFar: 270, exposure: 0.62,
     water: 0x1a3048, waterSun: 0xff9060,
     stops: [
       { t: 0, c: '#1a2048' }, { t: 0.3, c: '#803050' }, { t: 0.48, c: '#e05030' },
@@ -456,7 +456,7 @@ const DAY_KEYS = [
     turbidity: 1.8, rayleigh: 0.9,
     sunColor: 0x8899cc, sunIntensity: 0.2,
     hemiSky: 0x2a3558, hemiGround: 0x2a2018, hemiIntensity: 0.24,
-    fog: 0x141c30, exposure: 0.5,
+    fog: 0x141c30, fogNear: 105, fogFar: 310, exposure: 0.5,
     water: 0x0c1828, waterSun: 0x7788aa,
     stops: [
       { t: 0, c: '#080c20' }, { t: 0.3, c: '#1a2040' }, { t: 0.5, c: '#302848' },
@@ -469,7 +469,7 @@ const DAY_KEYS = [
     turbidity: 1.2, rayleigh: 0.6,
     sunColor: 0xb0c4e8, sunIntensity: 0.12,
     hemiSky: 0x1a2740, hemiGround: 0x1c1814, hemiIntensity: 0.22,
-    fog: 0x0b1220, exposure: 0.48,
+    fog: 0x0b1220, fogNear: 110, fogFar: 320, exposure: 0.48,
     water: 0x0a1824, waterSun: 0x8899bb,
     stops: [
       { t: 0, c: '#050814' }, { t: 0.25, c: '#0a1430' }, { t: 0.45, c: '#152048' },
@@ -507,6 +507,8 @@ function sampleDayMood(hour) {
     hemiGround: lerpHex(a.hemiGround, b.hemiGround, s),
     hemiIntensity: lerp(a.hemiIntensity, b.hemiIntensity, s),
     fog: lerpHex(a.fog, b.fog, s),
+    fogNear: lerp(a.fogNear, b.fogNear, s),
+    fogFar: lerp(a.fogFar, b.fogFar, s),
     exposure: lerp(a.exposure, b.exposure, s),
     water: lerpHex(a.water, b.water, s),
     waterSun: lerpHex(a.waterSun, b.waterSun, s),
@@ -539,6 +541,18 @@ function updateSkyGradientTexture(tex, stops) {
   tex.needsUpdate = true;
 }
 
+// Ease the knife-edge where sky meets sea by pulling horizon stops toward fog.
+function softenHorizonStops(stops, fogHex) {
+  return stops.map((s) => {
+    if (s.t < 0.48 || s.t > 0.78) return s;
+    const mid = 0.58;
+    const k = Math.max(0, 1 - Math.abs(s.t - mid) / 0.2) * 0.1;
+    if (k <= 0) return s;
+    const mixed = lerpHex(parseInt(s.c.slice(1), 16), fogHex, k);
+    return { t: s.t, c: `#${mixed.toString(16).padStart(6, '0')}` };
+  });
+}
+
 let envRT = null;
 let lastEnvElevation = null;
 
@@ -565,12 +579,14 @@ function applyDayMood(mood) {
   fillLight.color.setHex(mood.sunColor);
 
   scene.fog.color.setHex(mood.fog);
+  scene.fog.near = mood.fogNear;
+  scene.fog.far = mood.fogFar;
   renderer.toneMappingExposure = mood.exposure;
 
   water.material.uniforms['waterColor'].value.setHex(mood.water);
   water.material.uniforms['sunColor'].value.setHex(mood.waterSun);
 
-  updateSkyGradientTexture(skyGradTex, mood.stops);
+  updateSkyGradientTexture(skyGradTex, softenHorizonStops(mood.stops, mood.fog));
   scene.background = skyGradTex;
 
   if (lastEnvElevation === null || Math.abs(mood.elevation - lastEnvElevation) > 1.5) {
@@ -1098,7 +1114,7 @@ const shallowMaterial = new THREE.MeshBasicMaterial({
   map: makeShallowGradientTexture(),
   transparent: true,
   depthWrite: false,
-  fog: false,
+  fog: true,
 });
 const shallowWater = new THREE.Mesh(shallowGeometry, shallowMaterial);
 shallowWater.rotation.x = -Math.PI / 2;
