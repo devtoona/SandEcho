@@ -3,3 +3,7 @@
 .review
 .cursor
 .DS_Store
+
+# Source footage (keep local; convert to assets/audio)
+custom/input/movie/*
+!custom/input/movie/.gitkeep

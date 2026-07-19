@@ -109,7 +109,7 @@ function updateReadout() {
   ui.rHours.textContent = String(hours).padStart(2, '0');
   ui.rMinutes.textContent = String(minutes).padStart(2, '0');
   ui.rSeconds.textContent = String(seconds).padStart(2, '0');
-  ui.rCaption.textContent = remainingMs > 0 ? '残された時間' : '砂は落ちきりました';
+  ui.rCaption.textContent = remainingMs > 0 ? '残された時間' : '砂の旅は終わりました';
 
   return { fractionRemaining, remainingMs };
 }
@@ -195,6 +195,24 @@ freezeOrbitAtCurrent();
 const rotateToggle = document.getElementById('rotateToggle');
 const exploreToggle = document.getElementById('exploreToggle');
 const resetCameraBtn = document.getElementById('resetCameraBtn');
+const audioToggle = document.getElementById('audioToggle');
+
+const bgm = new Audio('assets/audio/nami.mp3');
+bgm.loop = true;
+bgm.preload = 'auto';
+
+async function setBgmPlaying(on) {
+  if (on) {
+    try {
+      await bgm.play();
+    } catch (err) {
+      console.warn('BGM play failed:', err);
+      audioToggle.checked = false;
+    }
+  } else {
+    bgm.pause();
+  }
+}
 
 rotateToggle.addEventListener('change', () => {
   controls.autoRotate = rotateToggle.checked;
@@ -213,6 +231,10 @@ resetCameraBtn.addEventListener('click', () => {
   controls.enablePan = false;
   resetCameraToDefault();
   freezeOrbitAtCurrent();
+});
+
+audioToggle.addEventListener('change', () => {
+  setBgmPlaying(audioToggle.checked);
 });
 
 /* ---------- Sky + sun ---------- */
