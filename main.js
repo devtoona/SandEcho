@@ -1462,10 +1462,11 @@ function updateSandLevels() {
   fractionRemaining = result.fractionRemaining;
   hasFinished = result.remainingMs !== undefined && result.remainingMs <= 0;
 
-  // Volume fraction, not height fraction, must match the elapsed/remaining
-  // time fraction so the sand level reads correctly against the bulb shape.
+  // Volume fraction, not height fraction, must match remaining / elapsed time.
+  // Top fills from the neck upward by remaining; bottom mirrors that so the
+  // unfilled pocket under the neck equals remaining (i.e. filled = elapsed).
   const topLevelY = heightForVolumeFraction(fractionRemaining);
-  const bottomLevelY = -heightForVolumeFraction(1 - fractionRemaining);
+  const bottomLevelY = -heightForVolumeFraction(fractionRemaining);
 
   topClipPlane.constant = topLevelY + HOURGLASS_Y_OFFSET;
   bottomClipPlane.constant = bottomLevelY + HOURGLASS_Y_OFFSET;
@@ -1535,7 +1536,7 @@ function animate() {
   updateSandLevels();
 
   const streamTop = NECK_Y - 0.015;
-  const streamBottomLevel = -heightForVolumeFraction(1 - fractionRemaining);
+  const streamBottomLevel = -heightForVolumeFraction(fractionRemaining);
   // Fall all the way onto the pile surface instead of stopping mid-air.
   const streamBottom = streamBottomLevel + 0.04;
   const fallDist = Math.max(streamTop - streamBottom, 0.08);
