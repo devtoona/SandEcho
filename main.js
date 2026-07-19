@@ -148,6 +148,10 @@ const CAMERA_POLAR = Math.PI * 0.46;
 const CAMERA_AZIMUTH = 0.4;
 const LOOK_TARGET_DEFAULT = new THREE.Vector3(0, 1.8, 0);
 const LOOK_TARGET_ROTATE = new THREE.Vector3(0, 1.8, 0);
+const EXPLORE_DIST_MIN = 5.5;
+const EXPLORE_DIST_MAX = 22;
+const EXPLORE_POLAR_MIN = Math.PI * 0.22;
+const EXPLORE_POLAR_MAX = Math.PI * 0.52;
 controls.target.copy(LOOK_TARGET_DEFAULT);
 controls.minDistance = CAMERA_DISTANCE;
 controls.maxDistance = CAMERA_DISTANCE;
@@ -165,15 +169,43 @@ function resetCameraToDefault() {
 resetCameraToDefault();
 
 const rotateToggle = document.getElementById('rotateToggle');
+const exploreToggle = document.getElementById('exploreToggle');
+
+function applyExploreMode(on) {
+  controls.enableZoom = on;
+  controls.enableRotate = on;
+  controls.enablePan = on;
+  if (on) {
+    controls.minDistance = EXPLORE_DIST_MIN;
+    controls.maxDistance = EXPLORE_DIST_MAX;
+    controls.minPolarAngle = EXPLORE_POLAR_MIN;
+    controls.maxPolarAngle = EXPLORE_POLAR_MAX;
+  } else {
+    controls.minDistance = CAMERA_DISTANCE;
+    controls.maxDistance = CAMERA_DISTANCE;
+    controls.minPolarAngle = CAMERA_POLAR;
+    controls.maxPolarAngle = CAMERA_POLAR;
+    resetCameraToDefault();
+    // Restore auto-rotate around the default framing if that toggle is still on.
+    controls.autoRotate = rotateToggle.checked;
+    if (rotateToggle.checked) controls.target.copy(LOOK_TARGET_ROTATE);
+    controls.update();
+  }
+}
+
 rotateToggle.addEventListener('change', () => {
   const on = rotateToggle.checked;
   controls.autoRotate = on;
   if (on) {
-    controls.target.copy(LOOK_TARGET_ROTATE);
+    if (!exploreToggle.checked) controls.target.copy(LOOK_TARGET_ROTATE);
     controls.update();
-  } else {
+  } else if (!exploreToggle.checked) {
     resetCameraToDefault();
   }
+});
+
+exploreToggle.addEventListener('change', () => {
+  applyExploreMode(exploreToggle.checked);
 });
 
 /* ---------- Sky + sun ---------- */

@@ -106,7 +106,7 @@ html, body {
   gap: 10px;
 }
 
-.rotate-toggle {
+.hud-toggle {
   position: relative;
   width: 46px;
   height: 46px;
@@ -114,14 +114,14 @@ html, body {
   cursor: pointer;
   user-select: none;
 }
-.rotate-toggle input {
+.hud-toggle input {
   position: absolute;
   inset: 0;
   opacity: 0;
   margin: 0;
   cursor: pointer;
 }
-.rotate-toggle-ui {
+.hud-toggle-ui {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -134,26 +134,26 @@ html, body {
   color: #fff8ec;
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
-.rotate-toggle-ui img {
+.hud-toggle-ui img {
   display: block;
   width: 22px;
   height: 22px;
   object-fit: contain;
   filter: brightness(0) invert(1);
   opacity: 0.92;
-  transition: filter 0.2s ease, opacity 0.2s ease;
+  transition: opacity 0.2s ease;
 }
-.rotate-toggle:hover .rotate-toggle-ui {
+.hud-toggle:hover .hud-toggle-ui {
   background: rgba(18, 22, 28, 0.58);
 }
-.rotate-toggle input:checked + .rotate-toggle-ui {
+.hud-toggle input:checked + .hud-toggle-ui {
   background: rgba(180, 48, 48, 0.82);
   border-color: rgba(255, 160, 160, 0.45);
 }
-.rotate-toggle input:checked + .rotate-toggle-ui img {
+.hud-toggle input:checked + .hud-toggle-ui img {
   opacity: 1;
 }
-.rotate-toggle input:focus-visible + .rotate-toggle-ui {
+.hud-toggle input:focus-visible + .hud-toggle-ui {
   outline: 2px solid rgba(255,248,236,0.55);
   outline-offset: 2px;
 }
