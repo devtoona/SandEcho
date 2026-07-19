@@ -28,7 +28,31 @@ const ui = {
   rSeconds: document.getElementById('rSeconds'),
   rCaption: document.getElementById('rCaption'),
   loadingScreen: document.getElementById('loadingScreen'),
+  hudActions: document.querySelector('.hud-actions'),
 };
+
+const HUD_IDLE_MS = 3000;
+let hudHideTimer = null;
+
+function showHudActions() {
+  if (!ui.hudActions) return;
+  ui.hudActions.classList.add('is-visible');
+  clearTimeout(hudHideTimer);
+  hudHideTimer = setTimeout(() => {
+    // Keep chrome while the memo is open.
+    if (!ui.modal.classList.contains('hidden')) {
+      showHudActions();
+      return;
+    }
+    ui.hudActions.classList.remove('is-visible');
+  }, HUD_IDLE_MS);
+}
+
+window.addEventListener('pointerdown', showHudActions, { passive: true });
+window.addEventListener('pointermove', () => {
+  if (ui.hudActions?.classList.contains('is-visible')) showHudActions();
+}, { passive: true });
+window.addEventListener('keydown', showHudActions);
 
 function loadSettings() {
   try {
