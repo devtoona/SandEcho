@@ -166,10 +166,13 @@ function resetCameraToDefault() {
   camera.position.add(controls.target);
   controls.update();
 }
-resetCameraToDefault();
 
-const rotateToggle = document.getElementById('rotateToggle');
-const exploreToggle = document.getElementById('exploreToggle');
+function freezeOrbitAtCurrent() {
+  const offset = new THREE.Vector3().subVectors(camera.position, controls.target);
+  const spherical = new THREE.Spherical().setFromVector3(offset);
+  controls.minDistance = controls.maxDistance = spherical.radius;
+  controls.minPolarAngle = controls.maxPolarAngle = spherical.phi;
+}
 
 function applyExploreMode(on) {
   controls.enableZoom = on;
@@ -181,31 +184,35 @@ function applyExploreMode(on) {
     controls.minPolarAngle = EXPLORE_POLAR_MIN;
     controls.maxPolarAngle = EXPLORE_POLAR_MAX;
   } else {
-    controls.minDistance = CAMERA_DISTANCE;
-    controls.maxDistance = CAMERA_DISTANCE;
-    controls.minPolarAngle = CAMERA_POLAR;
-    controls.maxPolarAngle = CAMERA_POLAR;
-    resetCameraToDefault();
-    // Restore auto-rotate around the default framing if that toggle is still on.
-    controls.autoRotate = rotateToggle.checked;
-    if (rotateToggle.checked) controls.target.copy(LOOK_TARGET_ROTATE);
-    controls.update();
+    freezeOrbitAtCurrent();
   }
+  controls.update();
 }
 
+resetCameraToDefault();
+freezeOrbitAtCurrent();
+
+const rotateToggle = document.getElementById('rotateToggle');
+const exploreToggle = document.getElementById('exploreToggle');
+const resetCameraBtn = document.getElementById('resetCameraBtn');
+
 rotateToggle.addEventListener('change', () => {
-  const on = rotateToggle.checked;
-  controls.autoRotate = on;
-  if (on) {
-    if (!exploreToggle.checked) controls.target.copy(LOOK_TARGET_ROTATE);
-    controls.update();
-  } else if (!exploreToggle.checked) {
-    resetCameraToDefault();
-  }
+  controls.autoRotate = rotateToggle.checked;
 });
 
 exploreToggle.addEventListener('change', () => {
   applyExploreMode(exploreToggle.checked);
+});
+
+resetCameraBtn.addEventListener('click', () => {
+  rotateToggle.checked = false;
+  exploreToggle.checked = false;
+  controls.autoRotate = false;
+  controls.enableZoom = false;
+  controls.enableRotate = false;
+  controls.enablePan = false;
+  resetCameraToDefault();
+  freezeOrbitAtCurrent();
 });
 
 /* ---------- Sky + sun ---------- */
