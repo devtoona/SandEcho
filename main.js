@@ -143,7 +143,7 @@ controls.enableZoom = false;
 controls.enableRotate = false;
 // Default: fixed view from the beach toward the sea.
 // Shift viewing direction with CAMERA_AZIMUTH (+ = from the right / subject faces a bit left).
-const CAMERA_DISTANCE = 14;
+const CAMERA_DISTANCE = 16;
 const CAMERA_POLAR = Math.PI * 0.46;
 const CAMERA_AZIMUTH = 0.4;
 const LOOK_TARGET_DEFAULT = new THREE.Vector3(0, 1.8, 0);
